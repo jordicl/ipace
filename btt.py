@@ -178,8 +178,20 @@ def outputBTT(status, departure):
 
     # Next departure
     nextDep = nextDeparture(departure)
+    now = datetime.datetime.now()
+    roundedNext = nextDep.replace(hour=0, minute=0, second=0, microsecond=0)
+    roundedNow = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    days = (roundedNext - roundedNow).days
+
     if nextDep:
-        print(' | ', nextDep.strftime("%A"), " ", nextDep.hour, ":", nextDep.minute, sep='')
+        if days == 0:
+            print(' | ', 'Today', " ", nextDep.hour, ":", nextDep.minute, sep='')
+        if days == 1:
+            print(' | ', 'Tomorrow', " ", nextDep.hour,
+                  ":", nextDep.minute, sep='')
+        else:
+            print(' | ', nextDep.strftime("%A"), " ",
+                  nextDep.hour, ":", nextDep.minute, sep='')
 
 
 vehicle = setupConnectionToVehicle()
