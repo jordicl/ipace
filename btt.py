@@ -127,11 +127,11 @@ def outputBTT(status, departure):
         if hours > 0:
             print('|', str(hours) + ':', end='')
         if mins > 0 and hours > 0:
-            print(str(mins).zfill(2) + ' mins', end='')
+            print(str(mins).zfill(2) + ' mins ', end='')
         if mins > 0 and hours == 0:
-            print('|', str(mins).zfill(2) + ' mins', end='')
-        else:
-            print('|', '??', end='')
+            print('|', str(mins).zfill(2) + ' mins ', end='')
+    else:
+        print('|', '??', end='')
 
     # Doors locked?
     if doorsLocked(status) != 'TRUE':
