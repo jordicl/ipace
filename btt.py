@@ -5,6 +5,7 @@ import math
 import argparse
 import configparser
 import logging
+import datetime
 
 # CLI
 parser = argparse.ArgumentParser()
@@ -103,6 +104,31 @@ def chargingTime(status):
     return([hours, remaining_minutes])
 
 
+def nearest(items, pivot):
+    return min(items, key=lambda x: abs(x - pivot))
+
+
+def nextDeparture(departure):
+    i = 0
+    departureTimes = []
+    for i in range(len(departure)):
+        if departure[i]['timerTarget']['singleDay']:
+            this_date = datetime.datetime(departure[i]['timerTarget']['singleDay']['year'], departure[i]['timerTarget']
+                                        ['singleDay']['month'], departure[i]['timerTarget']['singleDay']['day'], departure[i]['departureTime']['hour'], departure[i]['departureTime']['minute'])
+            departureTimes.append(this_date)
+        else:
+            for key, value in departure[i]['timerTarget']['repeatSchedule'].items():
+                if value is True:
+                    d = datetime.datetime.now()
+                    while d.strftime('%A') != key.capitalize():
+                        d += datetime.timedelta(1)
+                    d1 = d.replace(
+                        hour=departure[i]['departureTime']['hour'], minute=departure[i]['departureTime']['minute'], second=0, microsecond=0)
+                departureTimes.append(d1)
+        i = i + 1
+    return nearest(departureTimes, datetime.datetime.now())
+
+
 def outputBTT(status, departure):
     # Print current state of charge
     message = str(chargingStatus(status))
@@ -127,9 +153,9 @@ def outputBTT(status, departure):
         if hours > 0:
             print('|', str(hours) + ':', end='')
         if mins > 0 and hours > 0:
-            print(str(mins).zfill(2) + ' mins ', end='')
+            print(str(mins).zfill(2) + ' mins', end='')
         if mins > 0 and hours == 0:
-            print('|', str(mins).zfill(2) + ' mins ', end='')
+            print('|', str(mins).zfill(2) + ' mins', end='')
     else:
         print('|', '??', end='')
 
@@ -148,7 +174,12 @@ def outputBTT(status, departure):
         else:
             print(str(' | ' + preconditioningStatus(status).capitalize()))
     else:
-        print()
+        print(end='')
+
+    # Next departure
+    nextDep = nextDeparture(departure)
+    if nextDep:
+        print(' | ', nextDep.strftime("%A"), " ", nextDep.hour, ":", nextDep.minute, sep='')
 
 
 vehicle = setupConnectionToVehicle()
