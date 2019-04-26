@@ -1,6 +1,6 @@
 
 # btt.py
-The `btt.py` script is an example script that uses the [jlrpy](https://developers.iwelcome.com/Browser%20and%20Mobile%20Support/Platform%20Support%20Description/) module to print some useful information about your Jaguar iPace to standard out. It's main use is to display that information on the touchbar of recent Macbook Pro's, but it can be executed fromt the command line as well. To display information on the touchbar, an additional tool is needed: [BetterTouchTool](https://folivora.ai). Quick setup:
+The `btt.py` script is an example script that uses the [jlrpy](https://github.com/ardevd/jlrpy) module to print some useful information about your Jaguar iPace to standard out. It's main use is to display that information on the touchbar of recent Macbook Pro's, but it can be executed fromt the command line as well. To display information on the touchbar, an additional tool is needed: [BetterTouchTool](https://folivora.ai). Quick setup:
 
 1. Download the project.
 2. Add a file `.ipace.conf` to your home directory. It should contain:

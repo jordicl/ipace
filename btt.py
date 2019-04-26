@@ -47,58 +47,44 @@ def setupConnectionToVehicle():
     return(v)
 
 
-def currentCharge(status):
+def currentCharge(v):
     # Print current SOC
-    return int(status[38].get('value'))
+    return int(v.get_status("EV_STATE_OF_CHARGE"))
 
 
-def chargePerHour(status):
+def chargePerHour(v):
     # Charge per hour
-    charge = status[148].get('value')
+    charge = v.get_status("EV_CHARGING_RATE_SOC_PER_HOUR")
+
     if charge != "UNKNOWN":
         return float(charge)
     else:
         return "?"
 
 
-def preconditioningStatus(status):
-    return str(status[112].get('value'))
+def preconditioningStatus(v):
+    return str(v.get_status("EV_PRECONDITIONING_MODE"))
 
 
-def preconditioningRemainingRuntime(status):
-    return int(status[138].get('value'))
+def preconditioningRemainingRuntime(v):
+    return int(v.get_status("EV_PRECONDITION_REMAINING_RUNTIME_MINUTES"))
 
 
-def rangeInKM(status):
-    if status[6].get('key') == 'EV_RANGE_COMFORTx10':
-        return round(float(status[6].get('value')))
-    elif status[7].get('key') == 'EV_RANGE_COMFORTx10':
-        return round(float(status[7].get('value')))
-    else:
-        return 'error'
+def rangeInKM(v):
+    return round(float(v.get_status("EV_RANGE_COMFORTx10")))
 
 
-def doorsLocked(status):
-    if status[4].get('key') == 'DOOR_IS_ALL_DOORS_LOCKED':
-        return str(status[4].get('value'))
-    elif status[5].get('key') == 'DOOR_IS_ALL_DOORS_LOCKED':
-        return str(status[5].get('value'))
-    else:
-        return 'error'
+def doorsLocked(v):
+    return str(v.get_status("DOOR_IS_ALL_DOORS_LOCKED"))
 
 
-def chargingStatus(status):
-    if status[6].get('key') == 'EV_CHARGING_STATUS':
-        return str(status[6].get('value'))
-    elif status[7].get('key') == 'EV_CHARGING_STATUS':
-        return str(status[7].get('value'))
-    else:
-        return 'error'
+def chargingStatus(v):
+    return str(v.get_status("EV_CHARGING_STATUS"))
 
 
-def chargingTime(status):
+def chargingTime(v):
     # Print charging time
-    total_minutes = int(status[70].get('value'))
+    total_minutes = int(v.get_status("EV_MINUTES_TO_BULK_CHARGED"))
     hours = math.floor(total_minutes / 60)
     remaining_minutes = round(math.fmod(total_minutes, 60))
     return([hours, remaining_minutes])
@@ -119,6 +105,7 @@ def nextDeparture(departure):
         else:
             for key, value in departure[i]['timerTarget']['repeatSchedule'].items():
                 if value is True:
+                    print("YES!")
                     d = datetime.datetime.now()
                     while d.strftime('%A') != key.capitalize():
                         d += datetime.timedelta(1)
@@ -129,78 +116,80 @@ def nextDeparture(departure):
     return nearest(departureTimes, datetime.datetime.now())
 
 
-def outputBTT(status, departure):
+def outputBTT(v, departure):
     # Print current state of charge
-    message = str(chargingStatus(status))
+    message = str(chargingStatus(v))
     if message == "No Message":
         print('No cable', end='')
     else:
         print(message.capitalize(), end='')
 
-    print(' |', str(currentCharge(status)) + '% | ', end='')
+    print(' |', str(currentCharge(v)) + '% | ', end='')
 
     # Print charging rate
     if message != "No Message":
-        print(str(chargePerHour(status)), 'kwh | ', end='')
+        print(str(chargePerHour(v)), 'kwh | ', end='')
 
     # Print range in KM
-    print(str(rangeInKM(status)), 'km ', end='')
+    print(str(rangeInKM(v)), 'km ', end='')
 
     # Print remaining charging time
-    hours = chargingTime(status)[0]
-    mins = chargingTime(status)[1]
+    hours = chargingTime(v)[0]
+    mins = chargingTime(v)[1]
     if message != "No Message":
         if hours > 0:
-            print('|', str(hours) + ':', end='')
+            print('|', str(hours) + 'h ', end='')
         if mins > 0 and hours > 0:
-            print(str(mins).zfill(2) + ' mins', end='')
+            print(str(mins).zfill(2) + 'm', end='')
         if mins > 0 and hours == 0:
-            print('|', str(mins).zfill(2) + ' mins', end='')
+            print('|', str(mins).zfill(2) + 'm', end='')
     else:
         print('|', '??', end='')
 
     # Doors locked?
-    if doorsLocked(status) != 'TRUE':
+    if doorsLocked(v) != 'TRUE':
         print(' | DOORS OPEN', end='')
 
     # Preconditioning
-    if preconditioningStatus(status) != 'INACTIVE':
-        if preconditioningStatus(status) == 'IMMEDIATE':
+    if preconditioningStatus(v) != 'INACTIVE':
+        if preconditioningStatus(v) == 'IMMEDIATE':
             print(
-                ' | Climate (' + str(preconditioningRemainingRuntime(status)).zfill(2) + 'mins)')
-        if preconditioningStatus(status) == 'TIMED':
+                ' | Climate (' + str(preconditioningRemainingRuntime(v)).zfill(2) + 'mins)')
+        if preconditioningStatus(v) == 'TIMED':
             print(
                 ' | Preconditioning')
         else:
-            print(str(' | ' + preconditioningStatus(status).capitalize()))
+            print(str(' | ' + preconditioningStatus(v).capitalize()))
     else:
         print(end='')
 
-    # Next departure
-    nextDep = nextDeparture(departure)
-    now = datetime.datetime.now()
-    roundedNext = nextDep.replace(hour=0, minute=0, second=0, microsecond=0)
-    roundedNow = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    days = (roundedNext - roundedNow).days
+    # Disabled for now
 
-    if nextDep:
-        if days == 0:
-            print(' | ', 'Today', " ", nextDep.hour, ":", nextDep.minute, sep='')
-        if days == 1:
-            print(' | ', 'Tomorrow', " ", nextDep.hour,
-                  ":", nextDep.minute, sep='')
-        else:
-            print(' | ', nextDep.strftime("%A"), " ",
-                  nextDep.hour, ":", nextDep.minute, sep='')
+    # Next departure
+    # nextDep = nextDeparture(departure)
+    # now = datetime.datetime.now()
+    # roundedNext = nextDep.replace(hour=0, minute=0, second=0, microsecond=0)
+    # roundedNow = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    # days = (roundedNext - roundedNow).days
+
+    # if nextDep:
+    #     if days == 0:
+    #         print(' | ', 'Today', " ", nextDep.hour,
+    #               ":", nextDep.minute, sep='')
+    #     elif days == 1:
+    #         print(' | ', 'Tomorrow', " ", nextDep.hour,
+    #               ":", nextDep.minute, sep='')
+    #     else:
+    #         print(' | ', nextDep.strftime("%A"), " ",
+    #               nextDep.hour, ":", nextDep.minute, sep='')
 
 
 vehicle = setupConnectionToVehicle()
-status = vehicle.get_status()['vehicleStatus']
 departure = vehicle.get_departure_timers()['departureTimerSetting']['timers']
 
 # Print some additional information aiding development
 if args.verbose:
-    printStatus(status)
+    print(vehicle.get_status())
     printStatus(departure)
 
-outputBTT(status, departure)
+outputBTT(vehicle, departure)
